@@ -1,0 +1,15 @@
+[package]
+name = "envoy-wasm-stream-context"
+version = "0.1.0"
+authors = ["Chrtistof Gerber <christof.gerber1@gmail.com>"]
+edition = "2021"
+
+[lib]
+name = "wasmstreamcontext"
+crate-type = ["cdylib"]
+path = "src/stream_context.rs"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+proxy-wasm = "0.2.0"
+log = "0.4"
