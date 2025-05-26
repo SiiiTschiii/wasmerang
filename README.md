@@ -1,6 +1,6 @@
-# Wasmerang - a WASM network filter for Envoy written in Rust implementing the StreamContext to access the tcp connection
+# Wasmerang - A WASM network filter for Envoy using the StreamContext of the WASM Rust SDK to access the tcp connection
 
-Most of the WASM filter examples are HTTP filters, but sometimes you need to access the TCP connection directly. This is where the StreamContext comes in handy. This filter is a simple example of how to use the StreamContext to access the TCP connection and log the source and destination IP addresses of the connection.
+Most of the WASM filter examples are HTTP filters, but sometimes you want to access the TCP connection directly. This is where the StreamContext comes in handy. This filter is a simple example of how to use the StreamContext to access the TCP connection and log the source and destination IP addresses of the connection.
 
 This project is insipired by https://github.com/otomato-gh/proxy-wasm-rust. Thanks to the author https://github.com/antweiss!
 

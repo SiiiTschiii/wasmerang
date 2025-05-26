@@ -1,5 +1,5 @@
 [package]
-name = "envoy-wasm-stream-context"
+name = "wasmerang"
 version = "0.1.0"
 authors = ["Chrtistof Gerber <christof.gerber1@gmail.com>"]
 edition = "2021"
