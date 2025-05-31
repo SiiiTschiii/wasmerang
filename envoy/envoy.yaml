@@ -27,21 +27,34 @@ static_resources:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
                 stat_prefix: destination
-                cluster: cluster_0
+                cluster: egress1 # Default cluster, will be overridden by WASM filter
   clusters:
-    - name: cluster_0 # Cluster for TCP proxy
+    - name: egress1 # Cluster for www.example.com
       connect_timeout: 30s # Connection timeout
       type: LOGICAL_DNS # Use DNS for service discovery
       dns_lookup_family: V4_ONLY # Only use IPv4
       load_assignment:
-        cluster_name: cluster_0
+        cluster_name: egress1
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: www.example.com # Upstream address for TCP proxy
-                      port_value: 80 # Upstream port for TCP proxy
+                      address: www.example.com
+                      port_value: 80
+    - name: egress2 # Cluster for ipconfig.io
+      connect_timeout: 30s # Connection timeout
+      type: LOGICAL_DNS # Use DNS for service discovery
+      dns_lookup_family: V4_ONLY # Only use IPv4
+      load_assignment:
+        cluster_name: egress2
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: ipconfig.io
+                      port_value: 80
 
 admin:
   access_log_path: "/dev/null" # Disable admin access log

@@ -31,3 +31,7 @@ proxy-1  ... [TCP WASM] Destination address: 172.20.0.2:10000
 ```
 
 This shows that the filter is applied before the connection is established to the upstream service (`www.example.com`).
+
+
+https://github.com/envoyproxy/envoy/issues/15148#issuecomment-2913718379
+https://github.com/envoyproxy/envoy/issues/28128

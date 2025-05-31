@@ -1,7 +1,6 @@
-version: "3.8"
 services:
   proxy:
-    image: envoyproxy/envoy:v1.33-latest
+    image: envoyproxy/envoy:v1.34.1
     entrypoint: /usr/local/bin/envoy -c /etc/envoy.yaml -l debug --service-cluster proxy
     volumes:
       - ./envoy/envoy.yaml:/etc/envoy.yaml
