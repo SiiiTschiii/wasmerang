@@ -1,8 +1,7 @@
-version: "3.8"
 services:
   proxy:
-    image: envoyproxy/envoy:v1.33-latest
-    entrypoint: /usr/local/bin/envoy -c /etc/envoy.yaml -l debug --service-cluster proxy
+    image: envoyproxy/envoy:v1.34.1
+    entrypoint: /usr/local/bin/envoy -c /etc/envoy.yaml -l info --service-cluster proxy
     volumes:
       - ./envoy/envoy.yaml:/etc/envoy.yaml
       - ./target/wasm32-unknown-unknown/release/wasmstreamcontext.wasm:/etc/wasmstreamcontext.wasm
@@ -12,4 +11,7 @@ services:
       - "19000:10000"
 
 networks:
-  envoymesh: {}
+  envoymesh:
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
