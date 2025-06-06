@@ -25,7 +25,7 @@ Helpful resources:
 # source ip with even last octet are routed via egress1
 docker run --rm -it --network wasmerang_envoymesh --ip 172.21.0.10 curlimages/curl curl http://proxy:10000 -H "Host: www.ipconfig.io"
 
-# source ip with even last octet are routed via egress1
+# source ip with odd last octet are routed via egress1
 docker run --rm -it --network wasmerang_envoymesh --ip 172.21.0.11 curlimages/curl curl http://proxy:10000 -H "Host: www.ipconfig.io"
 ```
 
