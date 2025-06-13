@@ -32,21 +32,27 @@ impl StreamContext for DestIpLogger {
         } else {
             info!("[TCP WASM] Destination address not found");
         }
-        // Log soruce address and set reroute metadata
-        let mut reroute_cluster: Option<&str> = None;
+        // Log source address and set reroute metadata
+        let mut reroute_cluster: Option<String> = None;
+        let destination_port = "80".to_string(); // Always route to egress service port 80
+        
         if let Some(val) = self.get_property(vec!["source", "address"]) {
             if let Ok(s) = String::from_utf8(val) {
                 info!("[TCP WASM] Source address: {}", s);
-                // Parse last octet
+                
+                // Parse last octet for routing decision - intercept ALL traffic
                 if let Some(ip_part) = s.split(':').next() {
                     if let Some(last_octet) = ip_part.split('.').last() {
                         if let Ok(num) = last_octet.parse::<u8>() {
+                            info!("[TCP WASM] Source IP last octet: {}, intercepting ALL traffic", num);
                             if num % 2 == 0 {
                                 // Even last octet, reroute to egress1
-                                reroute_cluster = Some("egress1");
+                                reroute_cluster = Some(format!("outbound|{}||egress1.default.svc.cluster.local", destination_port));
+                                info!("[TCP WASM] Routing to egress1");
                             } else {
                                 // Odd last octet, reroute to egress2
-                                reroute_cluster = Some("egress2");
+                                reroute_cluster = Some(format!("outbound|{}||egress2.default.svc.cluster.local", destination_port));
+                                info!("[TCP WASM] Routing to egress2");
                             }
                         }
                     }
@@ -65,7 +71,7 @@ impl StreamContext for DestIpLogger {
 
             let args = SetEnvoyFilterStateArguments {
                 path: "envoy.tcp_proxy.cluster".to_string(),
-                value: cluster.to_string(),
+                value: cluster.clone(),
                 span: LifeSpan::FilterChain as i32, // or LifeSpan::DownstreamConnection if preferred
             };
             let mut buf = Vec::new();

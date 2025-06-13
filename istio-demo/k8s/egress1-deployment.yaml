@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: egress1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: egress1
+  template:
+    metadata:
+      labels:
+        app: egress1
+        istio-injection: disabled
+    spec:
+      containers:
+        - name: egress1
+          image: go-server:latest # Replace with your image repo if pushing to a registry
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SERVER_NAME
+              value: "egress1"
+          ports:
+            - containerPort: 8080
+            - containerPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: egress1
+spec:
+  selector:
+    app: egress1
+  ports:
+    - name: http-80
+      port: 80
+      targetPort: 8080
+    - name: http-8081
+      port: 8081
+      targetPort: 8081

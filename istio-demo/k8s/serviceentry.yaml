@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: ipconfig-io-tcp
+spec:
+  hosts:
+    - "www.ipconfig.io"
+  location: MESH_EXTERNAL
+  ports:
+    - number: 80
+      name: tcp
+      protocol: TCP
+  resolution: DNS

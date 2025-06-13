@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-client
+  template:
+    metadata:
+      labels:
+        app: go-client
+      annotations:
+        sidecar.istio.io/userVolume: '[{"name":"wasm-filter","configMap":{"name":"tcp-wasm-filter"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"mountPath":"/etc/wasm","name":"wasm-filter","readOnly":true}]'
+        sidecar.istio.io/logLevel: debug
+        sidecar.istio.io/componentLogLevel: "wasm:debug"
+    spec:
+      volumes:
+        - name: wasm-filter
+          configMap:
+            name: tcp-wasm-filter
+            items:
+              - key: wasmstreamcontext.wasm
+                path: wasmstreamcontext.wasm
+      containers:
+        - name: go-client
+          image: go-client:latest # Replace with your image repo if pushing to a registry
+          imagePullPolicy: IfNotPresent
+          command: ["/client"]
+          volumeMounts:
+            - name: wasm-filter
+              mountPath: /etc/wasm
+              readOnly: true
