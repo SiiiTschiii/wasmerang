@@ -81,3 +81,86 @@ This demo shows how to use your WASM TCP filter with Istio in a local kind clust
 - Update the EnvoyFilter manifest to point to your WASM file (ConfigMap or HTTP URL).
 - You can exec into the client pod to run more requests if needed.
 - For production, use a proper image registry and update image references in the manifests.
+
+## WASM Filter Behavior Analysis
+
+### Working Cases ✅
+
+The WASM TCP filter successfully intercepts:
+
+1. **TCP connections to internal services** (egress1:8080, egress2:8080)
+2. **HTTPS connections** (port 443) to external sites
+3. **Any non-standard ports** that Istio doesn't auto-detect as HTTP
+
+### Not Working Cases ❌
+
+The WASM filter does NOT intercept:
+
+1. **HTTP connections on port 80** - Uses HTTP connection manager instead of TCP proxy
+2. **HTTP client library requests** - Go through HTTP filter chains
+
+### Why Port 80 vs 443 Behave Differently
+
+Istio automatically detects well-known ports and routes them through different filter chains:
+
+**Port 443 (HTTPS) - Uses TCP Proxy Filter Chain:**
+
+```bash
+kubectl exec <go-client-pod> -c istio-proxy -- curl -s localhost:15000/config_dump | \
+  jq '.configs[] | select(.["@type"] | contains("Listener")) | .dynamic_listeners[] |
+      select(.name == "0.0.0.0_443") | .active_state.listener.filter_chains[0].filters[] | .name'
+```
+
+Result:
+
+- `"istio.stats"`
+- `"envoy.filters.network.wasm"` ← **Our WASM filter is here!**
+- `"envoy.filters.network.tcp_proxy"`
+
+**Port 80 (HTTP) - Uses HTTP Connection Manager:**
+
+```bash
+kubectl exec <go-client-pod> -c istio-proxy -- curl -s localhost:15000/config_dump | \
+  jq '.configs[] | select(.["@type"] | contains("Listener")) | .dynamic_listeners[] |
+      select(.name == "0.0.0.0_80") | .active_state.listener.filter_chains[0].filters[] | .name'
+```
+
+Result:
+
+- `"envoy.filters.network.http_connection_manager"` ← **No WASM filter here!**
+
+### Debugging Filter Chains
+
+To investigate which filter chain handles specific ports:
+
+1. **List all listeners:**
+
+```bash
+kubectl exec <go-client-pod> -c istio-proxy -- curl -s localhost:15000/config_dump | \
+  jq '.configs[] | select(.["@type"] | contains("Listener")) | .dynamic_listeners[] | .name'
+```
+
+2. **Check filter chain for specific port:**
+
+```bash
+kubectl exec <go-client-pod> -c istio-proxy -- curl -s localhost:15000/config_dump | \
+  jq '.configs[] | select(.["@type"] | contains("Listener")) | .dynamic_listeners[] |
+      select(.name == "0.0.0.0_<PORT>") | .active_state.listener.filter_chains[0].filters[] | .name'
+```
+
+### Summary
+
+The WASM TCP filter works correctly for actual TCP traffic:
+
+- ✅ **Port 443 (HTTPS)**: Uses TCP proxy filter chains and gets intercepted
+- ❌ **Port 80 (HTTP)**: Uses HTTP connection manager and bypasses TCP filters
+- ✅ **Non-standard ports**: Would use TCP proxy filter chains and get intercepted
+
+This behavior is by design in Istio/Envoy - HTTP traffic gets HTTP-specific features like routing, retries, and circuit breakers, while raw TCP traffic goes through TCP proxy filter chains.
+
+## Troubleshooting
+
+- **Check WASM filter logs:** `kubectl logs <go-client-pod> -c istio-proxy | grep "TCP WASM"`
+- **Check filter chains:** Use the debugging commands above
+- **Verify WASM file:** `kubectl exec <go-client-pod> -c istio-proxy -- ls -la /etc/wasm/`
+- **Check Envoy config:** `kubectl exec <go-client-pod> -c istio-proxy -- curl localhost:15000/config_dump`
