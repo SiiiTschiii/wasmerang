@@ -1,17 +1,82 @@
-use log::{info};
+use log::{info, warn};
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
+
+struct PluginRootContext {
+    is_istio: bool,
+}
+
+impl PluginRootContext {
+    fn new() -> Self {
+        Self {
+            is_istio: false, // Default to standalone Envoy
+        }
+    }
+}
+
+impl Context for PluginRootContext {}
+
+impl RootContext for PluginRootContext {
+    fn get_type(&self) -> Option<ContextType> {
+        Some(ContextType::StreamContext)
+    }
+
+    fn on_configure(&mut self, _plugin_configuration_size: usize) -> bool {
+        if let Some(config_bytes) = self.get_plugin_configuration() {
+            if let Ok(config_str) = String::from_utf8(config_bytes) {
+                let config_str = config_str.trim();
+                info!("[TCP WASM] Configuration: '{}'", config_str);
+                
+                // Simple string-based configuration
+                self.is_istio = config_str == "istio" || config_str == "kubernetes";
+                
+                info!("[TCP WASM] Environment: {}", if self.is_istio { "Istio/Kubernetes" } else { "Standalone Envoy" });
+            } else {
+                warn!("[TCP WASM] Failed to parse configuration as UTF-8");
+            }
+        } else {
+            info!("[TCP WASM] No configuration provided, using default (standalone Envoy)");
+        }
+        true
+    }
+
+    fn create_stream_context(&self, context_id: u32) -> Option<Box<dyn StreamContext>> {
+        Some(Box::new(DestIpLogger { 
+            context_id,
+            is_istio: self.is_istio,
+        }))
+    }
+}
 
 #[no_mangle]
 pub fn _start() {
     proxy_wasm::set_log_level(LogLevel::Info);
-    proxy_wasm::set_stream_context(|context_id, _| -> Box<dyn StreamContext> {
-        Box::new(DestIpLogger { context_id })
+    proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
+        Box::new(PluginRootContext::new())
     });
 }
 
 struct DestIpLogger {
     context_id: u32,
+    is_istio: bool,
+}
+
+impl DestIpLogger {
+    /// Returns the appropriate cluster names based on the environment configuration
+    fn get_cluster_names(&self, destination_port: &str) -> (String, String) {
+        if self.is_istio {
+            // Istio/Kubernetes environment - use full cluster names
+            info!("[TCP WASM] Using Istio cluster names");
+            (
+                format!("outbound|{}||egress1.default.svc.cluster.local", destination_port),
+                format!("outbound|{}||egress2.default.svc.cluster.local", destination_port)
+            )
+        } else {
+            // Standalone Envoy - use simple names
+            info!("[TCP WASM] Using standalone Envoy cluster names");
+            ("egress1".to_string(), "egress2".to_string())
+        }
+    }
 }
 
 impl Context for DestIpLogger {}
@@ -54,13 +119,17 @@ impl StreamContext for DestIpLogger {
                     if let Some(last_octet) = ip_part.split('.').last() {
                         if let Ok(num) = last_octet.parse::<u8>() {
                             info!("[TCP WASM] Source IP last octet: {}, intercepting ALL traffic", num);
+                            
+                            // Determine cluster name based on environment
+                            let (egress1_cluster, egress2_cluster) = self.get_cluster_names(&destination_port);
+                            
                             if num % 2 == 0 {
                                 // Even last octet, reroute to egress1
-                                reroute_cluster = Some(format!("outbound|{}||egress1.default.svc.cluster.local", destination_port));
+                                reroute_cluster = Some(egress1_cluster);
                                 info!("[TCP WASM] Routing to egress1");
                             } else {
                                 // Odd last octet, reroute to egress2
-                                reroute_cluster = Some(format!("outbound|{}||egress2.default.svc.cluster.local", destination_port));
+                                reroute_cluster = Some(egress2_cluster);
                                 info!("[TCP WASM] Routing to egress2");
                             }
                         }

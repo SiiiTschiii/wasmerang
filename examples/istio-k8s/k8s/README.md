@@ -2,6 +2,37 @@
 
 This demo shows how to use your WASM TCP filter with Istio in a local kind cluster. It includes a Go client that makes HTTP requests and two Go servers (egress1, egress2) that receive traffic based on the last octet of the source IP, as determined by the WASM filter.
 
+## Quick Start Workflow
+
+**From the repository root (`wasmerang/`):**
+
+```bash
+# 1. Build WASM filter
+cargo build --target=wasm32-unknown-unknown --release
+
+# 2. Create/update ConfigMap with WASM binary
+kubectl delete configmap tcp-wasm-filter -n default --ignore-not-found
+kubectl create configmap tcp-wasm-filter --from-file=wasmstreamcontext.wasm=target/wasm32-unknown-unknown/release/wasmstreamcontext.wasm -n default
+
+# 3. Navigate to istio-k8s directory and build Go images
+cd examples/istio-k8s
+docker build -t go-client:latest -f Dockerfile.client .
+docker build -t go-server:latest -f Dockerfile.server .
+kind load docker-image go-client:latest --name istio-wasm
+kind load docker-image go-server:latest --name istio-wasm
+
+# 4. Deploy Kubernetes resources
+cd k8s
+kubectl apply -f egress1-deployment.yaml
+kubectl apply -f egress2-deployment.yaml
+kubectl apply -f client-deployment.yaml
+kubectl apply -f envoyfilter.yaml
+
+# 5. Test the deployment
+kubectl logs -l app=go-client -c go-client --tail=10
+kubectl logs -l app=go-client -c istio-proxy --tail=20 | grep "TCP WASM"
+```
+
 ## Structure
 
 - `go-client/`: Go HTTP client app
@@ -41,15 +72,19 @@ This demo shows how to use your WASM TCP filter with Istio in a local kind clust
 2. **Build WASM filter** (from repo root):
 
    ```sh
+   # Navigate to repo root first
+   cd ../../..
    cargo build --target=wasm32-unknown-unknown --release
    # Make wasm file available to Istio (ConfigMap or HTTP server)
-   kubectl delete configmap tcp-wasm-filter -n default
+   kubectl delete configmap tcp-wasm-filter -n default --ignore-not-found
    kubectl create configmap tcp-wasm-filter --from-file=wasmstreamcontext.wasm=target/wasm32-unknown-unknown/release/wasmstreamcontext.wasm -n default
    ```
 
-3. **Build Go images** (from `istio-demo/`):
+3. **Build Go images** (from `examples/istio-k8s/`):
 
    ```sh
+   # Navigate back to the istio-k8s directory
+   cd examples/istio-k8s
    docker build -t go-client:latest -f Dockerfile.client .
    docker build -t go-server:latest -f Dockerfile.server .
    # Load images into kind so the cluster can use them
@@ -61,11 +96,13 @@ This demo shows how to use your WASM TCP filter with Istio in a local kind clust
 4. **Deploy demo apps**:
 
    ```sh
-   kubectl apply -f k8s/egress1-deployment.yaml
-   kubectl apply -f k8s/egress2-deployment.yaml
-   kubectl apply -f k8s/client-deployment.yaml
-   kubectl apply -f k8s/serviceentry.yaml
-   # (Apply EnvoyFilter manifest after editing for your WASM filter)
+   # Navigate to k8s directory
+   cd k8s
+   kubectl apply -f egress1-deployment.yaml
+   kubectl apply -f egress2-deployment.yaml
+   kubectl apply -f client-deployment.yaml
+   kubectl apply -f envoyfilter.yaml
+   # Apply the EnvoyFilter to enable the WASM filter
    ```
 
 5. **Test**:

@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: wasm-tcp-dest-ip-logger
+  name: wasm-tcp-filter
   namespace: default
 spec:
   workloadSelector:
@@ -22,10 +22,13 @@ spec:
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
             config:
-              name: "tcp_dest_ip_logger"
-              root_id: "tcp_dest_ip_logger"
+              name: "tcp_wasm_filter"
+              root_id: "tcp_wasm_filter"
+              configuration:
+                "@type": type.googleapis.com/google.protobuf.StringValue
+                value: "istio"
               vm_config:
-                vm_id: "vm.tcp_dest_ip_logger"
+                vm_id: "vm.tcp_wasm_filter"
                 runtime: "envoy.wasm.runtime.v8"
                 code:
                   local:
