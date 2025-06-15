@@ -13,10 +13,13 @@ static_resources:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
                 config:
-                  name: tcp_dest_ip_logger
-                  root_id: tcp_dest_ip_logger
+                  name: tcp_wasm_filter
+                  root_id: tcp_wasm_filter
+                  configuration:
+                    "@type": type.googleapis.com/google.protobuf.StringValue
+                    value: "standalone"
                   vm_config:
-                    vm_id: vm.tcp_dest_ip_logger
+                    vm_id: vm.tcp_wasm_filter
                     runtime: envoy.wasm.runtime.v8
                     code:
                       local:

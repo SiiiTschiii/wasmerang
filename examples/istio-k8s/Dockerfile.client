@@ -1,0 +1,8 @@
+FROM golang:1.22-alpine as build
+WORKDIR /app
+COPY go-client/main.go .
+RUN go build -o client main.go
+
+FROM alpine
+COPY --from=build /app/client /client
+ENTRYPOINT ["/client"]

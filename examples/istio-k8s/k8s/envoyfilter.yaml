@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: wasm-tcp-filter
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: go-client # Or remove this to apply mesh-wide, or set to istio: ingressgateway for gateway
+  configPatches:
+    - applyTo: NETWORK_FILTER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.tcp_proxy"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.network.wasm
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
+            config:
+              name: "tcp_wasm_filter"
+              root_id: "tcp_wasm_filter"
+              configuration:
+                "@type": type.googleapis.com/google.protobuf.StringValue
+                value: "istio"
+              vm_config:
+                vm_id: "vm.tcp_wasm_filter"
+                runtime: "envoy.wasm.runtime.v8"
+                code:
+                  local:
+                    filename: /etc/wasm/wasmstreamcontext.wasm # Path inside the pod, see below
+                allow_precompiled: true
