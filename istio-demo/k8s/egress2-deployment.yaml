@@ -21,8 +21,8 @@ spec:
             - name: SERVER_NAME
               value: "egress2"
           ports:
-            - containerPort: 8080
-            - containerPort: 8081
+            - containerPort: 80
+            - containerPort: 443
 ---
 apiVersion: v1
 kind: Service
@@ -32,9 +32,9 @@ spec:
   selector:
     app: egress2
   ports:
-    - name: http-80
+    - name: http
       port: 80
-      targetPort: 8080
-    - name: http-8081
-      port: 8081
-      targetPort: 8081
+      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 443

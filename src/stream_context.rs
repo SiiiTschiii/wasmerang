@@ -34,7 +34,16 @@ impl StreamContext for DestIpLogger {
         }
         // Log source address and set reroute metadata
         let mut reroute_cluster: Option<String> = None;
-        let destination_port = "80".to_string(); // Always route to egress service port 80
+        let mut destination_port = "80".to_string(); // Default to port 80
+        
+        // Extract destination port from the destination address
+        if let Some(val) = self.get_property(vec!["destination", "address"]) {
+            if let Ok(s) = String::from_utf8(val) {
+                if let Some(port_part) = s.split(':').last() {
+                    destination_port = port_part.to_string();
+                }
+            }
+        }
         
         if let Some(val) = self.get_property(vec!["source", "address"]) {
             if let Ok(s) = String::from_utf8(val) {
