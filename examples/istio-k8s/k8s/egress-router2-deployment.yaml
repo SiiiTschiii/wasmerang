@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: egress-router2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: egress-router2
+  template:
+    metadata:
+      labels:
+        app: egress-router2
+        istio-injection: disabled
+    spec:
+      containers:
+        - name: egress-router2
+          image: egress-router:latest # Replace with your image repo if pushing to a registry
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SERVER_NAME
+              value: "egress-router2"
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: egress-router2
+spec:
+  selector:
+    app: egress-router2
+  ports:
+    - name: tcp
+      port: 8080
+      targetPort: 8080
