@@ -1,0 +1,8 @@
+FROM golang:1.22-alpine as build
+WORKDIR /app
+COPY egress-router/main.go .
+RUN go build -o egress-router main.go
+
+FROM alpine
+COPY --from=build /app/egress-router /egress-router
+ENTRYPOINT ["/egress-router"]

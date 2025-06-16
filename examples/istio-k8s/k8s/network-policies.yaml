@@ -1,0 +1,83 @@
+---
+# Block all egress traffic for go-client except DNS and traffic to egress routers
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: go-client-egress-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: go-client
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow traffic to egress routers on port 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: egress-router1
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: egress-router2
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow traffic within the cluster (for Istio sidecar communication)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 15001 # Istio proxy inbound
+        - protocol: TCP
+          port: 15006 # Istio proxy outbound
+        - protocol: TCP
+          port: 15010 # Istio pilot
+        - protocol: TCP
+          port: 15011 # Istio pilot
+        - protocol: TCP
+          port: 15012 # Istio control plane (istiod)
+        - protocol: TCP
+          port: 15020 # Istio health check
+---
+# Allow egress routers to connect to the internet
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-router-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: egress-router1
+  policyTypes:
+    - Egress
+  egress:
+    # Allow all egress traffic for egress routers
+    - {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-router2-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: egress-router2
+  policyTypes:
+    - Egress
+  egress:
+    # Allow all egress traffic for egress routers
+    - {}

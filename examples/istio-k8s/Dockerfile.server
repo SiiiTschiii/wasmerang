@@ -1,8 +1,0 @@
-FROM golang:1.22-alpine as build
-WORKDIR /app
-COPY go-server/main.go .
-RUN go build -o server main.go
-
-FROM alpine
-COPY --from=build /app/server /server
-ENTRYPOINT ["/server"]

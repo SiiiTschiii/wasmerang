@@ -63,13 +63,13 @@ struct DestIpLogger {
 
 impl DestIpLogger {
     /// Returns the appropriate cluster names based on the environment configuration
-    fn get_cluster_names(&self, destination_port: &str) -> (String, String) {
+    fn get_cluster_names(&self) -> (String, String) {
         if self.is_istio {
-            // Istio/Kubernetes environment - use full cluster names
-            info!("[TCP WASM] Using Istio cluster names");
+            // Istio/Kubernetes environment - use full cluster names with port 8080
+            info!("[TCP WASM] Using Istio cluster names with port 8080");
             (
-                format!("outbound|{}||egress1.default.svc.cluster.local", destination_port),
-                format!("outbound|{}||egress2.default.svc.cluster.local", destination_port)
+                "outbound|8080||egress-router1.default.svc.cluster.local".to_string(),
+                "outbound|8080||egress-router2.default.svc.cluster.local".to_string()
             )
         } else {
             // Standalone Envoy - use simple names
@@ -99,16 +99,8 @@ impl StreamContext for DestIpLogger {
         }
         // Log source address and set reroute metadata
         let mut reroute_cluster: Option<String> = None;
-        let mut destination_port = "80".to_string(); // Default to port 80
         
-        // Extract destination port from the destination address
-        if let Some(val) = self.get_property(vec!["destination", "address"]) {
-            if let Ok(s) = String::from_utf8(val) {
-                if let Some(port_part) = s.split(':').last() {
-                    destination_port = port_part.to_string();
-                }
-            }
-        }
+        // Remove destination port logic since we always forward to port 8080
         
         if let Some(val) = self.get_property(vec!["source", "address"]) {
             if let Ok(s) = String::from_utf8(val) {
@@ -120,17 +112,17 @@ impl StreamContext for DestIpLogger {
                         if let Ok(num) = last_octet.parse::<u8>() {
                             info!("[TCP WASM] Source IP last octet: {}, intercepting ALL traffic", num);
                             
-                            // Determine cluster name based on environment
-                            let (egress1_cluster, egress2_cluster) = self.get_cluster_names(&destination_port);
+                            // Determine cluster name based on environment (always port 8080)
+                            let (egress1_cluster, egress2_cluster) = self.get_cluster_names();
                             
                             if num % 2 == 0 {
-                                // Even last octet, reroute to egress1
+                                // Even last octet, reroute to egress-router1
                                 reroute_cluster = Some(egress1_cluster);
-                                info!("[TCP WASM] Routing to egress1");
+                                info!("[TCP WASM] Routing to egress-router1");
                             } else {
-                                // Odd last octet, reroute to egress2
+                                // Odd last octet, reroute to egress-router2
                                 reroute_cluster = Some(egress2_cluster);
-                                info!("[TCP WASM] Routing to egress2");
+                                info!("[TCP WASM] Routing to egress-router2");
                             }
                         }
                     }
