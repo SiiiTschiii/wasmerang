@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -14,6 +15,13 @@ const (
 	DESTINATION_PORT = "443"
 	LISTEN_PORT      = "8080"
 )
+
+// isConnectionClosed checks if an error is due to a closed network connection
+func isConnectionClosed(err error) bool {
+	return strings.Contains(err.Error(), "use of closed network connection") ||
+		   strings.Contains(err.Error(), "broken pipe") ||
+		   strings.Contains(err.Error(), "connection reset by peer")
+}
 
 func main() {
 	name := os.Getenv("SERVER_NAME")
@@ -68,10 +76,16 @@ func handleConnection(conn net.Conn, serverName string) {
 	
 	// Copy from client to destination
 	go func() {
-		defer func() { done <- struct{}{} }()
+		defer func() { 
+			destConn.Close() // Close destination to signal the other goroutine
+			done <- struct{}{}
+		}()
 		bytesWritten, err := io.Copy(destConn, conn)
 		if err != nil {
-			log.Printf("[%s] ⚠️  Error copying client->dest: %v", serverName, err)
+			// Only log if it's not a "use of closed network connection" error
+			if !isConnectionClosed(err) {
+				log.Printf("[%s] ⚠️  Error copying client->dest: %v", serverName, err)
+			}
 		} else {
 			log.Printf("[%s] 📤 Copied %d bytes client->dest", serverName, bytesWritten)
 		}
@@ -79,16 +93,23 @@ func handleConnection(conn net.Conn, serverName string) {
 	
 	// Copy from destination to client
 	go func() {
-		defer func() { done <- struct{}{} }()
+		defer func() { 
+			conn.Close() // Close client connection to signal the other goroutine
+			done <- struct{}{}
+		}()
 		bytesWritten, err := io.Copy(conn, destConn)
 		if err != nil {
-			log.Printf("[%s] ⚠️  Error copying dest->client: %v", serverName, err)
+			// Only log if it's not a "use of closed network connection" error
+			if !isConnectionClosed(err) {
+				log.Printf("[%s] ⚠️  Error copying dest->client: %v", serverName, err)
+			}
 		} else {
 			log.Printf("[%s] 📥 Copied %d bytes dest->client", serverName, bytesWritten)
 		}
 	}()
 	
-	// Wait for either direction to complete
+	// Wait for both directions to complete
+	<-done
 	<-done
 	
 	duration := time.Since(start)
