@@ -44,8 +44,9 @@ cargo build --target=wasm32-unknown-unknown --release
 
 ```bash
 cd examples/envoy-docker
-# See examples/envoy-docker/README.md for detailed instructions
 ```
+
+See [examples/envoy-docker/README.md](examples/envoy-docker/README.md) for detailed instructions.
 
 _Note: The Docker example demonstrates WASM-based dynamic routing but does not include transparent traffic interception. Clients must explicitly connect to the Envoy proxy._
 
@@ -53,8 +54,9 @@ _Note: The Docker example demonstrates WASM-based dynamic routing but does not i
 
 ```bash
 cd examples/istio-k8s
-# See examples/istio-k8s/README.md for detailed instructions
 ```
+
+See [examples/istio-k8s/README.md](examples/istio-k8s/README.md) for detailed instructions.
 
 _Note: The Istio example provides full transparent proxy capabilities, where clients make normal requests but traffic is automatically intercepted and rerouted by the sidecar proxy._
 
