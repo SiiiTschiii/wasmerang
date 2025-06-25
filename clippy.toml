@@ -1,0 +1,17 @@
+# Clippy configuration for wasmerang
+# See: https://doc.rust-lang.org/clippy/configuration.html
+
+# Maximum number of lines a function or method can have
+too-many-lines-threshold = 100
+
+# The maximum size of arrays to check for `ARRAY_SIZE_THRESHOLD`
+array-size-threshold = 512000
+
+# The maximum number of bounds a trait can have to be linted by `type_repetition_in_bounds`
+max-trait-bounds = 3
+
+# The maximum number of bool fields a struct can have before triggering `struct_excessive_bools`
+max-struct-bools = 3
+
+# The maximum number of bool parameters a function can have before triggering `fn_params_excessive_bools`
+max-fn-params-bools = 3
