@@ -1,6 +1,6 @@
 # Wasmerang - A WASM TCP Filter for Envoy
 
-[![CI](https://github.com/YOUR_USERNAME/wasmerang/workflows/CI/badge.svg)](https://github.com/YOUR_USERNAME/wasmerang/actions/workflows/ci.yml)
+[![CI](https://github.com/SiiiTschiii/wasmerang/workflows/CI/badge.svg)](https://github.com/SiiiTschiii/wasmerang/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org/)
 [![WASM](https://img.shields.io/badge/target-wasm32--unknown--unknown-green.svg)](https://webassembly.org/)

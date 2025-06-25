@@ -39,32 +39,32 @@ static_resources:
                       log_format:
                         text_format: "[%START_TIME%] cluster=%UPSTREAM_CLUSTER% src=%DOWNSTREAM_REMOTE_ADDRESS% dst=%DOWNSTREAM_LOCAL_ADDRESS% -> %UPSTREAM_HOST%\n"
   clusters:
-    - name: egress1 # Cluster for egress-router1
+    - name: egress-router1 # Cluster for egress-router1
       connect_timeout: 30s # Connection timeout
       type: LOGICAL_DNS # Use DNS for service discovery
       dns_lookup_family: V4_ONLY # Only use IPv4
       load_assignment:
-        cluster_name: egress1
+        cluster_name: egress-router1
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: egress-router1 # This would be the egress router service
-                      port_value: 8080
-    - name: egress2 # Cluster for egress-router2
+                      address: www.ipconfig.io # This would be the egress router service
+                      port_value: 80
+    - name: egress-router2 # Cluster for egress-router2
       connect_timeout: 30s # Connection timeout
       type: LOGICAL_DNS # Use DNS for service discovery
       dns_lookup_family: V4_ONLY # Only use IPv4
       load_assignment:
-        cluster_name: egress2
+        cluster_name: egress-router2
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: egress-router2 # This would be the egress router service
-                      port_value: 8080
+                      address: www.ipconfig.io # This would be the egress router service.
+                      port_value: 80
 
 admin:
   access_log_path: "/dev/null" # Disable admin access log
