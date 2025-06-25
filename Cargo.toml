@@ -16,7 +16,7 @@ path = "src/lib.rs"
 proxy-wasm = "0.2.0"
 log = "0.4"
 prost = "0.12"
-prost-types = "0.12"
+prost-types = "0.14"
 
 [build-dependencies]
 prost-build = "0.12"
