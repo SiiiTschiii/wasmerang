@@ -1,12 +1,13 @@
 # Makefile for wasmerang
 
-.PHONY: help build build-wasm test fmt lint clean check-readme check-deps ci install-tools regen-proto
+.PHONY: help build build-wasm test test-wasm fmt lint clean check-readme check-deps ci install-tools regen-proto
 
 # Default target
 help:
 	@echo "  build      - Build the project for host target"
 	@echo "  build-wasm - Build the WASM module"
 	@echo "  test       - Run unit tests"
+	@echo "  test-wasm  - Test WASM compilation (verify it compiles)"
 	@echo "  fmt        - Format code with rustfmt"
 	@echo "  lint       - Run clippy lints"
 	@echo "  clean      - Clean build artifacts"
@@ -16,7 +17,7 @@ help:
 	@echo "  ci         - Run all CI checks locally"
 	@echo "  install-tools - Install development tools"
 
-.PHONY: help build build-wasm test fmt lint clean check-readme check-deps ci install-tools regen-proto
+.PHONY: help build build-wasm test test-wasm fmt lint clean check-readme check-deps ci install-tools regen-proto
 
 # Check dependencies
 check-deps:
@@ -30,6 +31,10 @@ build-wasm:
 # Run tests
 test:
 	cargo test
+
+# Test WASM compilation (verifies WASM code compiles but can't execute)
+test-wasm:
+	cargo test --target wasm32-unknown-unknown --no-run
 
 # Format code
 fmt:
