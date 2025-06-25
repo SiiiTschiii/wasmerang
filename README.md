@@ -1,4 +1,4 @@
-# Wasmerang - A WASM TCP Filter for Envoy
+# Wasmerang - A WASM TCP Filter for Istio (and Envoy)
 
 [![CI](https://github.com/SiiiTschiii/wasmerang/workflows/CI/badge.svg)](https://github.com/SiiiTschiii/wasmerang/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -6,7 +6,7 @@
 [![WASM](https://img.shields.io/badge/target-wasm32--unknown--unknown-green.svg)](https://webassembly.org/)
 [![Envoy](https://img.shields.io/badge/envoy-proxy--wasm-purple.svg)](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/advanced/wasm)
 
-A WebAssembly (WASM) filter for Envoy that operates at the TCP layer using the StreamContext. This filter demonstrates how to create a **transparent proxy** that dynamically reroutes TCP traffic at runtime by intercepting the `network.tcp_proxy` filter chain and using Envoy's `set_envoy_filter_state` API to override cluster routing decisions.
+A WebAssembly (WASM) filter for Istio (Envoy) that operates at the TCP layer using the StreamContext. This filter demonstrates how to create a **transparent proxy** that dynamically reroutes TCP traffic at runtime by intercepting the `network.tcp_proxy` filter chain and using Envoy's `set_envoy_filter_state` API to override cluster routing decisions.
 
 Most WASM filter examples focus on HTTP, but this project shows how to work at the TCP/IP level for transparent network control without requiring application-level changes.
 
