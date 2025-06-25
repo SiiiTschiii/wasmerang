@@ -7,7 +7,7 @@ edition = "2021"
 [lib]
 name = "wasmstreamcontext"
 crate-type = ["cdylib"]
-path = "src/stream_context.rs"
+path = "src/lib.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
