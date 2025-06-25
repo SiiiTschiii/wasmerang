@@ -1,2 +1,9 @@
 /target
 Cargo.lock
+
+# VS Code personal settings (exclude these)
+.vscode/launch.json
+.vscode/workspace/
+.vscode/*.code-workspace
+
+# Include .vscode/settings.json and .vscode/extensions.json for team consistency

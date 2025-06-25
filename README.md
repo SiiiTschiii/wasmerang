@@ -1,5 +1,11 @@
 # Wasmerang - A WASM TCP Filter for Envoy
 
+[![CI](https://github.com/YOUR_USERNAME/wasmerang/workflows/CI/badge.svg)](https://github.com/YOUR_USERNAME/wasmerang/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org/)
+[![WASM](https://img.shields.io/badge/target-wasm32--unknown--unknown-green.svg)](https://webassembly.org/)
+[![Envoy](https://img.shields.io/badge/envoy-proxy--wasm-purple.svg)](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/advanced/wasm)
+
 A WebAssembly (WASM) filter for Envoy that operates at the TCP layer using the StreamContext. This filter demonstrates how to create a **transparent proxy** that dynamically reroutes TCP traffic at runtime by intercepting the `network.tcp_proxy` filter chain and using Envoy's `set_envoy_filter_state` API to override cluster routing decisions.
 
 Most WASM filter examples focus on HTTP, but this project shows how to work at the TCP/IP level for transparent network control without requiring application-level changes.
@@ -29,6 +35,8 @@ Most WASM filter examples focus on HTTP, but this project shows how to work at t
 ```bash
 cargo build --target=wasm32-unknown-unknown --release
 ```
+
+> **Note:** Protocol buffer code in `src/generated/` is pre-generated and committed to avoid requiring `protoc` for basic builds. To regenerate: `make regen-proto`
 
 ### Run Examples
 
@@ -87,6 +95,58 @@ This creates a transparent proxy where clients connect to one destination but ar
    - This would enable transparent proxying for all traffic types, not just HTTPS
 
 These improvements would make the transparent proxy more complete and production-ready for diverse network environments.
+
+## Development & CI/CD
+
+### Running Tests Locally
+
+```bash
+# Quick development checks
+make dev
+
+# Run all CI checks locally
+make ci
+
+# Individual commands
+make test          # Run unit tests
+make fmt           # Format code
+make lint          # Run clippy lints
+make build-wasm    # Build WASM module
+make wasm-size     # Check WASM file size
+make check-readme  # Verify all README files are linked
+
+# Manual cargo commands
+cargo test --verbose
+cargo llvm-cov --html  # Requires: cargo install cargo-llvm-cov
+cargo fmt --check
+cargo clippy -- -D warnings
+cargo audit            # Requires: cargo install cargo-audit
+```
+
+### GitHub Actions
+
+This project uses a single, simple GitHub Actions workflow for CI:
+
+#### **CI Pipeline** (`/.github/workflows/ci.yml`)
+
+Runs on every push and pull request to `main`:
+
+- ✅ **Code formatting** - `cargo fmt --check`
+- ✅ **Linting** - `cargo clippy -- -D warnings`
+- ✅ **Unit tests** - `cargo test --verbose` (8 comprehensive test cases)
+- ✅ **WASM build** - `cargo build --target wasm32-unknown-unknown --release`
+- ✅ **README link validation** - Ensures all README files are discoverable from root
+- ✅ **File size check** - Reports final WASM module size
+
+**Simple, fast, and reliable!** 🚀
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Ensure all CI checks pass
+5. Submit a pull request
 
 ## Resources
 
