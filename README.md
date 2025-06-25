@@ -36,6 +36,8 @@ Most WASM filter examples focus on HTTP, but this project shows how to work at t
 cargo build --target=wasm32-unknown-unknown --release
 ```
 
+> **Note:** Protocol buffer code in `src/generated/` is pre-generated and committed to avoid requiring `protoc` for basic builds. To regenerate: `make regen-proto`
+
 ### Run Examples
 
 **Standalone Envoy (Docker):**

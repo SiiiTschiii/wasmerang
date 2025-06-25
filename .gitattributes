@@ -1,0 +1,2 @@
+# Mark generated files to reduce diff noise in GitHub
+src/generated/*.rs linguist-generated=true
