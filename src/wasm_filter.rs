@@ -14,7 +14,7 @@ pub mod set_envoy_filter_state {
 }
 
 /// Root context for the WASM filter
-/// 
+///
 /// This handles configuration parsing and creates stream contexts for new connections.
 #[derive(Default)]
 #[allow(dead_code)] // This struct is only used within the WASM context
@@ -58,7 +58,7 @@ impl RootContext for PluginRootContext {
 }
 
 /// Stream context for handling individual connections
-/// 
+///
 /// This uses the core Router logic to make routing decisions and communicates
 /// them to Envoy via the filter state mechanism.
 #[allow(dead_code)] // This struct is only used within the WASM context
@@ -73,7 +73,7 @@ impl StreamContext for SourceBasedRouter {
         if let Some(source_addr_bytes) = self.get_property(vec!["source", "address"]) {
             if let Ok(source_addr) = std::str::from_utf8(&source_addr_bytes) {
                 info!("[TCP WASM] Source address: {}", source_addr);
-                
+
                 if let Some(cluster) = self.router.decide_route_cluster(source_addr) {
                     info!("[TCP WASM] Routing to {}", &cluster);
 
@@ -107,7 +107,7 @@ impl StreamContext for SourceBasedRouter {
 }
 
 /// WASM entry point
-/// 
+///
 /// This function is called when the WASM module is loaded by Envoy.
 #[no_mangle]
 pub fn _start() {

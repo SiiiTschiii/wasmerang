@@ -6,7 +6,9 @@ edition = "2021"
 
 [lib]
 name = "wasmstreamcontext"
-crate-type = ["cdylib"]
+# cdylib: Creates a C-compatible dynamic library for WASM compilation
+# rlib: Creates a standard Rust library for doctests and potential reuse by other Rust crates
+crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

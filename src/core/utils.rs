@@ -1,27 +1,27 @@
 //! Utility functions for IP address parsing
 
 /// Extracts the last octet from an IP address string (v4 or v6).
-/// 
+///
 /// This function handles various IP address formats:
 /// - IPv4 with port: "192.168.1.10:8080" → Some(10)
 /// - IPv4 without port: "192.168.1.10" → Some(10)
 /// - IPv6 with port: "[::ffff:192.168.1.100]:8080" → Some(100)
 /// - IPv4-mapped IPv6: "::ffff:192.168.1.100" → Some(100)
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `ip_address` - The IP address string to parse
-/// 
+///
 /// # Returns
-/// 
+///
 /// * `Some(octet)` if the last octet can be successfully parsed as a u8
 /// * `None` if parsing fails for any reason
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
-/// use wasmerang::core::extract_last_octet;
-/// 
+/// use wasmstreamcontext::core::extract_last_octet;
+///
 /// assert_eq!(extract_last_octet("1.2.3.4:5678"), Some(4));
 /// assert_eq!(extract_last_octet("10.244.0.94:33198"), Some(94));
 /// assert_eq!(extract_last_octet("127.0.0.1"), Some(1));

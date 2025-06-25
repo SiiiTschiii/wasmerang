@@ -29,7 +29,7 @@ build-wasm:
 	cargo build --target wasm32-unknown-unknown --release
 
 # Run tests
-test:
+test: check-deps
 	cargo test
 
 # Test WASM compilation (verifies WASM code compiles but can't execute)
@@ -96,3 +96,12 @@ wasm-size: build-wasm
 # Quick development cycle
 dev: fmt lint test
 	@echo "Development checks passed!"
+
+# Testing targets
+test: check-deps ## Run unit tests
+	cargo test
+
+test-doc: check-deps ## Run documentation tests
+	cargo test --doc
+
+test-all: test test-doc ## Run both unit tests and documentation tests

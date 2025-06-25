@@ -8,18 +8,18 @@ pub struct Config {
 
 impl Config {
     /// Parses the configuration from a byte slice.
-    /// 
+    ///
     /// The configuration is expected to be a UTF-8 string.
     /// If the string contains "istio", the filter will use Istio-style cluster names.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
-    /// use wasmerang::Config;
-    /// 
+    /// use wasmstreamcontext::Config;
+    ///
     /// let config = Config::from_bytes(b"istio");
     /// assert!(config.is_istio);
-    /// 
+    ///
     /// let config = Config::from_bytes(b"standalone");
     /// assert!(!config.is_istio);
     /// ```
