@@ -19,7 +19,7 @@ prost = "0.12"
 prost-types = "0.12"
 
 [build-dependencies]
-prost-build = "0.12"
+prost-build = "0.14"
 
 # Default to WASM target since this is a WASM-only project
 [target.wasm32-unknown-unknown]
