@@ -74,7 +74,33 @@ impl StreamContext for SourceBasedRouter {
             if let Ok(source_addr) = std::str::from_utf8(&source_addr_bytes) {
                 info!("[TCP WASM] Source address: {}", source_addr);
 
-                if let Some(cluster) = self.router.decide_route_cluster(source_addr) {
+                // Get destination address to determine the port
+                let dest_port = if let Some(dest_addr_bytes) =
+                    self.get_property(vec!["destination", "address"])
+                {
+                    if let Ok(dest_addr) = std::str::from_utf8(&dest_addr_bytes) {
+                        info!("[TCP WASM] Destination address: {}", dest_addr);
+                        // Extract port from destination address (format: "ip:port")
+                        if let Some(port_str) = dest_addr.split(':').last() {
+                            port_str.parse::<u16>().unwrap_or(443) // Default to HTTPS
+                        } else {
+                            443 // Default to HTTPS
+                        }
+                    } else {
+                        info!("[TCP WASM] Destination address: (non-UTF8)");
+                        443 // Default to HTTPS
+                    }
+                } else {
+                    info!("[TCP WASM] Destination address not found, defaulting to HTTPS port 443");
+                    443
+                };
+
+                info!("[TCP WASM] Detected destination port: {}", dest_port);
+
+                if let Some(cluster) = self
+                    .router
+                    .decide_route_cluster_with_dest(source_addr, dest_port)
+                {
                     info!("[TCP WASM] Routing to {}", &cluster);
 
                     // Set dynamic metadata for rerouting using the proper Envoy mechanism

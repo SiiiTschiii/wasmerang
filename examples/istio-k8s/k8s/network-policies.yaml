@@ -19,21 +19,25 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Allow traffic to egress routers on port 8080
+    # Allow traffic to egress routers on ports 8080 (HTTPS) and 8081 (HTTP)
     - to:
         - podSelector:
             matchLabels:
               app: egress-router1
       ports:
         - protocol: TCP
-          port: 8080
+          port: 8080 # HTTPS traffic
+        - protocol: TCP
+          port: 8081 # HTTP traffic
     - to:
         - podSelector:
             matchLabels:
               app: egress-router2
       ports:
         - protocol: TCP
-          port: 8080
+          port: 8080 # HTTPS traffic
+        - protocol: TCP
+          port: 8081 # HTTP traffic
     # Allow traffic within the cluster (for Istio sidecar communication)
     - to:
         - namespaceSelector: {}

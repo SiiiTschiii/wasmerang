@@ -11,9 +11,14 @@ import (
 
 const (
 	// Hardcoded destination for now - httpbin.org
-	DESTINATION_HOST = "54.198.84.155"
-	DESTINATION_PORT = "443"
-	LISTEN_PORT      = "8080"
+	DESTINATION_HOST = "44.207.188.95"
+	
+	// Two listeners for different protocols
+	HTTPS_LISTEN_PORT = "8080"  // Listen for HTTPS traffic, forward to port 443
+	HTTP_LISTEN_PORT  = "8081"  // Listen for HTTP traffic, forward to port 80
+	
+	HTTPS_DEST_PORT = "443"     // Forward HTTPS traffic to port 443
+	HTTP_DEST_PORT  = "80"      // Forward HTTP traffic to port 80
 )
 
 // isConnectionClosed checks if an error is due to a closed network connection
@@ -29,47 +34,60 @@ func main() {
 		name = "unknown-egress-router"
 	}
 	
-	// Start TCP server on port 8080 (non-standard port)
-	log.Printf("[%s] 🚀 Starting TCP egress router on port %s", name, LISTEN_PORT)
-	listener, err := net.Listen("tcp", ":"+LISTEN_PORT)
+	log.Printf("[%s] 🚀 Starting dual-protocol TCP egress router", name)
+	log.Printf("[%s] 🔒 HTTPS listener: port %s -> %s:%s", name, HTTPS_LISTEN_PORT, DESTINATION_HOST, HTTPS_DEST_PORT)
+	log.Printf("[%s] 🌐 HTTP listener: port %s -> %s:%s", name, HTTP_LISTEN_PORT, DESTINATION_HOST, HTTP_DEST_PORT)
+	
+	// Start HTTPS listener (port 8080 -> 443)
+	go startListener(name, HTTPS_LISTEN_PORT, HTTPS_DEST_PORT, "HTTPS")
+	
+	// Start HTTP listener (port 8081 -> 80)
+	go startListener(name, HTTP_LISTEN_PORT, HTTP_DEST_PORT, "HTTP")
+	
+	// Keep main goroutine alive
+	select {}
+}
+
+func startListener(serverName, listenPort, destPort, protocol string) {
+	listener, err := net.Listen("tcp", ":"+listenPort)
 	if err != nil {
-		log.Fatalf("[%s] ❌ Failed to start TCP server on port %s: %v", name, LISTEN_PORT, err)
+		log.Fatalf("[%s] ❌ Failed to start %s TCP server on port %s: %v", serverName, protocol, listenPort, err)
 	}
 	defer listener.Close()
 	
-	log.Printf("[%s] ✅ TCP egress router listening on port %s, forwarding to %s:%s", name, LISTEN_PORT, DESTINATION_HOST, DESTINATION_PORT)
+	log.Printf("[%s] ✅ %s TCP listener ready on port %s, forwarding to %s:%s", serverName, protocol, listenPort, DESTINATION_HOST, destPort)
 	
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("[%s] ❌ Error accepting connection on port %s: %v", name, LISTEN_PORT, err)
+			log.Printf("[%s] ❌ Error accepting %s connection on port %s: %v", serverName, protocol, listenPort, err)
 			continue
 		}
 		
 		// Handle each connection in a goroutine
-		go handleConnection(conn, name)
+		go handleConnection(conn, serverName, destPort, protocol)
 	}
 }
 
-func handleConnection(conn net.Conn, serverName string) {
+func handleConnection(conn net.Conn, serverName, destPort, protocol string) {
 	defer conn.Close()
 	
 	start := time.Now()
 	clientAddr := conn.RemoteAddr().String()
 	
-	log.Printf("[%s] 🎯 NEW TCP CONNECTION from %s", serverName, clientAddr)
+	log.Printf("[%s] 🎯 NEW %s CONNECTION from %s", serverName, protocol, clientAddr)
 	log.Printf("[%s] 📡 Local address: %s", serverName, conn.LocalAddr().String())
-	log.Printf("[%s] 🔀 Bridging to %s:%s", serverName, DESTINATION_HOST, DESTINATION_PORT)
+	log.Printf("[%s] 🔀 Bridging to %s:%s", serverName, DESTINATION_HOST, destPort)
 	
 	// Connect to the destination server
-	destConn, err := net.DialTimeout("tcp", DESTINATION_HOST+":"+DESTINATION_PORT, 10*time.Second)
+	destConn, err := net.DialTimeout("tcp", DESTINATION_HOST+":"+destPort, 10*time.Second)
 	if err != nil {
-		log.Printf("[%s] ❌ Failed to connect to destination %s:%s: %v", serverName, DESTINATION_HOST, DESTINATION_PORT, err)
+		log.Printf("[%s] ❌ Failed to connect to destination %s:%s: %v", serverName, DESTINATION_HOST, destPort, err)
 		return
 	}
 	defer destConn.Close()
 	
-	log.Printf("[%s] ✅ Connected to destination %s:%s", serverName, DESTINATION_HOST, DESTINATION_PORT)
+	log.Printf("[%s] ✅ Connected to destination %s:%s", serverName, DESTINATION_HOST, destPort)
 	
 	// Start bidirectional copying
 	done := make(chan struct{}, 2)

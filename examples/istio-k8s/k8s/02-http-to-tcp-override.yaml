@@ -1,0 +1,61 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: http-to-tcp-override-port-80
+  namespace: default
+  labels:
+    app: wasmerang
+    component: http-to-tcp-override
+  annotations:
+    description: "Forces HTTP port 80 traffic to use TCP proxy filter chain instead of HTTP Connection Manager"
+spec:
+  workloadSelector:
+    labels:
+      app: go-client # Targets the go-client sidecar
+  configPatches:
+    # Remove the auto-generated HTTP listener for port 80
+    - applyTo: LISTENER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          portNumber: 80
+      patch:
+        operation: REMOVE
+
+    # Add a custom TCP listener for port 80 with WASM + TCP proxy filters
+    - applyTo: LISTENER
+      match:
+        context: SIDECAR_OUTBOUND
+      patch:
+        operation: ADD
+        value:
+          name: "outbound_0.0.0.0_80"
+          address:
+            socket_address:
+              address: "0.0.0.0"
+              port_value: 80
+          filter_chains:
+            - filters:
+                # Insert WASM filter first
+                - name: envoy.filters.network.wasm
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.wasm.v3.Wasm
+                    config:
+                      name: tcp_wasm_filter
+                      root_id: tcp_wasm_filter
+                      configuration:
+                        "@type": type.googleapis.com/google.protobuf.StringValue
+                        value: "istio"
+                      vm_config:
+                        vm_id: vm.tcp_wasm_filter
+                        runtime: envoy.wasm.runtime.v8
+                        code:
+                          local:
+                            filename: /etc/wasm/wasmstreamcontext.wasm
+                        allow_precompiled: true
+                # Then TCP proxy filter
+                - name: envoy.filters.network.tcp_proxy
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                    stat_prefix: tcp_outbound_80
+                    cluster: PassthroughCluster

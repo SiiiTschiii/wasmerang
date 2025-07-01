@@ -96,6 +96,77 @@ impl Router {
             Some(cluster2)
         }
     }
+
+    /// Determines the cluster based on both source IP and destination port.
+    ///
+    /// The routing decision combines:
+    /// - Source IP (even/odd last octet) → router1/router2
+    /// - Destination port → port on the selected router (8080 for HTTPS, 8081 for HTTP)
+    ///
+    /// # Arguments
+    ///
+    /// * `source_address` - The source IP address with port (e.g., "192.168.1.10:12345")
+    /// * `dest_port` - The destination port (80 for HTTP, 443 for HTTPS)
+    ///
+    /// # Returns
+    ///
+    /// * `Some(cluster_name)` if routing can be determined
+    /// * `None` if the parameters are invalid
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use wasmstreamcontext::{Config, Router};
+    ///
+    /// let router = Router::new(Config { is_istio: true });
+    ///
+    /// // Even source IP + HTTPS (443) → router1 port 8080
+    /// assert_eq!(
+    ///     router.decide_route_cluster_with_dest("10.0.0.2:12345", 443),
+    ///     Some("outbound|8080||egress-router1.default.svc.cluster.local".to_string())
+    /// );
+    ///
+    /// // Odd source IP + HTTP (80) → router2 port 8081
+    /// assert_eq!(
+    ///     router.decide_route_cluster_with_dest("10.0.0.3:12345", 80),
+    ///     Some("outbound|8081||egress-router2.default.svc.cluster.local".to_string())
+    /// );
+    /// ```
+    pub fn decide_route_cluster_with_dest(
+        &self,
+        source_address: &str,
+        dest_port: u16,
+    ) -> Option<String> {
+        let last_octet = extract_last_octet(source_address)?;
+
+        // Determine which router based on source IP (even/odd)
+        let router_name = if last_octet % 2 == 0 {
+            if self.config.is_istio {
+                "egress-router1.default.svc.cluster.local"
+            } else {
+                "egress-router1"
+            }
+        } else {
+            if self.config.is_istio {
+                "egress-router2.default.svc.cluster.local"
+            } else {
+                "egress-router2"
+            }
+        };
+
+        // Determine which port based on destination port
+        let router_port = match dest_port {
+            443 => 8080, // HTTPS traffic → port 8080
+            80 => 8081,  // HTTP traffic → port 8081
+            _ => 8080,   // Default to HTTPS port for unknown protocols
+        };
+
+        if self.config.is_istio {
+            Some(format!("outbound|{}||{}", router_port, router_name))
+        } else {
+            Some(router_name.to_string())
+        }
+    }
 }
 
 #[cfg(test)]
@@ -145,6 +216,27 @@ mod tests {
         assert_eq!(
             router.decide_route_cluster("[::ffff:192.168.1.101]:8080"),
             Some(cluster2.clone())
+        );
+    }
+
+    #[test]
+    fn test_routing_decision_with_dest_logic() {
+        let router = Router::new(Config { is_istio: false });
+
+        // Even octet + HTTPS port -> cluster1
+        assert_eq!(
+            router.decide_route_cluster_with_dest("10.0.0.2:12345", 443),
+            Some("egress-router1".to_string())
+        );
+        // Odd octet + HTTP port -> cluster2
+        assert_eq!(
+            router.decide_route_cluster_with_dest("10.0.0.3:12345", 80),
+            Some("egress-router2".to_string())
+        );
+        // Even octet + unknown port -> cluster1 (defaults to HTTPS port)
+        assert_eq!(
+            router.decide_route_cluster_with_dest("10.0.0.4:12345", 1234),
+            Some("egress-router1".to_string())
         );
     }
 }

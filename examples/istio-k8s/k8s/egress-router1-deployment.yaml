@@ -22,6 +22,9 @@ spec:
               value: "egress-router1"
           ports:
             - containerPort: 8080
+              name: https-proxy
+            - containerPort: 8081
+              name: http-proxy
 ---
 apiVersion: v1
 kind: Service
@@ -31,6 +34,9 @@ spec:
   selector:
     app: egress-router1
   ports:
-    - name: tcp
+    - name: https-proxy
       port: 8080
       targetPort: 8080
+    - name: http-proxy
+      port: 8081
+      targetPort: 8081
