@@ -160,7 +160,7 @@ impl Router {
         };
 
         if self.config.is_istio {
-            Some(format!("outbound|{}||{}", router_port, router_name))
+            Some(format!("outbound|{router_port}||{router_name}"))
         } else {
             Some(router_name.to_string())
         }
