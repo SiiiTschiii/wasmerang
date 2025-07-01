@@ -146,12 +146,10 @@ impl Router {
             } else {
                 "egress-router1"
             }
+        } else if self.config.is_istio {
+            "egress-router2.default.svc.cluster.local"
         } else {
-            if self.config.is_istio {
-                "egress-router2.default.svc.cluster.local"
-            } else {
-                "egress-router2"
-            }
+            "egress-router2"
         };
 
         // Determine which port based on destination port
