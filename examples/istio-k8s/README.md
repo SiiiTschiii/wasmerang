@@ -6,13 +6,13 @@ This example demonstrates how to use the WASM TCP filter with Istio in a Kuberne
 
 This setup demonstrates a transparent TCP proxy using WASM filters:
 
-- **WASM filter** acts as a transparent proxy for HTTPS traffic, intercepting TCP connections on port 443
-- **go-client** makes HTTP/HTTPS requests to httpbin.org, with different behaviors:
+- **WASM filter** acts as a transparent proxy for both HTTP and HTTPS traffic, intercepting TCP connections on ports 80 and 443
+- **go-client** makes HTTP/HTTPS requests to httpbin.org:
   - **HTTPS requests**: Intercepted by WASM filter and routed through egress-router1/egress-router2 on port 8080
-  - **HTTP requests**: Use Istio's HTTP filter chain, bypass WASM filter, and are blocked by NetworkPolicy since only egress routers are allowed internet access
-- **egress-router1/egress-router2** act as TCP bridges, forwarding intercepted traffic to httpbin.org (54.198.84.155:443)
+  - **HTTP requests**: Intercepted by WASM filter via HTTP-to-TCP override and routed through egress-router1/egress-router2 on port 8081
+- **egress-router1/egress-router2** act as TCP bridges, forwarding intercepted traffic to httpbin.org on both ports 80 and 443
 - **NetworkPolicy** blocks direct internet access, only allowing traffic to egress routers and DNS resolution
-- This creates a controlled egress path where all HTTPS traffic is transparently routed through monitored egress points
+- This creates a controlled egress path where all HTTP/HTTPS traffic is transparently routed through monitored egress points
 
 ## Quick Start
 
@@ -42,10 +42,11 @@ kind load docker-image egress-router:latest --name istio-wasm
 
 # 5. Deploy Kubernetes resources
 cd k8s
+kubectl apply -f 01-wasm-tcp-filter.yaml
+kubectl apply -f 02-http-to-tcp-override.yaml
 kubectl apply -f egress-router1-deployment.yaml
 kubectl apply -f egress-router2-deployment.yaml
 kubectl apply -f client-deployment.yaml
-kubectl apply -f envoyfilter.yaml
 kubectl apply -f network-policies.yaml
 ```
 
@@ -54,16 +55,14 @@ kubectl apply -f network-policies.yaml
 The go-client will make both HTTP and HTTPS requests to httpbin.org. You should see output like:
 
 ```
-HTTPS httpbin.org 213.55.242.101 200
-HTTP httpbin.org - 503
-HTTPS httpbin.org 213.55.242.101 200
-HTTP httpbin.org - 503
+HTTPS httpbin.org 178.197.177.121 200
+HTTP httpbin.org 178.197.177.121 200
 ```
 
 This shows:
 
-- **HTTP requests (port 80)**: Go through Istio HTTP connection manager, bypassing WASM filter. Since NetworkPolicy only allows egress routers to access the internet, HTTP traffic fails with 503 responses
-- **HTTPS requests (port 443)**: Intercepted by WASM filter acting as transparent proxy and routed through egress-router (IP 213.55.242.101)
+- **HTTP requests (port 80)**: Intercepted by WASM filter via HTTP-to-TCP override and routed through egress-router on port 8081
+- **HTTPS requests (port 443)**: Intercepted by WASM filter acting as transparent proxy and routed through egress-router on port 8080
 
 Check WASM filter logs in the Envoy sidecar:
 
@@ -80,48 +79,6 @@ You should see WASM filter logs showing the routing decisions:
 [TCP WASM] set_envoy_filter_state status (envoy.tcp_proxy.cluster): Ok(None)
 [TCP WASM] Rerouting to egress-router1 via filter state
 ```
-
-## How It Works
-
-### WASM Filter Behavior
-
-The WASM TCP filter successfully intercepts:
-
-- ✅ **HTTPS connections (port 443)** to external sites - Uses TCP proxy filter chain
-- ✅ **TCP connections** to internal services (egress-router:8080)
-- ✅ **Any non-standard ports** that Istio doesn't auto-detect as HTTP
-
-The WASM filter does NOT intercept:
-
-- ❌ **HTTP connections (port 80)** - Uses HTTP connection manager instead of TCP proxy
-- ❌ **HTTP client library requests** - Go through HTTP filter chains
-
-### Why Port 80 vs 443 Behave Differently
-
-Istio automatically detects well-known ports and routes them through different filter chains:
-
-**Port 443 (HTTPS) - Uses TCP Proxy Filter Chain:**
-
-- `istio.stats`
-- `envoy.filters.network.wasm` ← **Your WASM filter is here!**
-- `envoy.filters.network.tcp_proxy`
-
-**Port 80 (HTTP) - Uses HTTP Connection Manager:**
-
-- `envoy.filters.network.http_connection_manager` ← **No WASM filter here!**
-
-### NetworkPolicy Enforcement
-
-The NetworkPolicy blocks direct internet access by only allowing:
-
-- DNS resolution (port 53)
-- Traffic to egress-router pods (port 8080)
-- Istio control plane communication (ports 15xxx)
-
-This results in different behavior for HTTP vs HTTPS:
-
-- **HTTP traffic** goes through Istio's HTTP connection manager (PassthroughCluster) but is ultimately blocked by NetworkPolicy, resulting in 503 responses
-- **HTTPS traffic** gets intercepted by WASM acting as a transparent proxy and redirected to allowed egress-router destinations
 
 ## Prerequisites
 
@@ -141,12 +98,13 @@ This results in different behavior for HTTP vs HTTPS:
 ## Architecture
 
 - **go-client**: Makes HTTP/HTTPS requests, has Istio sidecar with WASM filter
-- **egress-router1/egress-router2**: TCP bridge servers that forward traffic to httpbin.org (54.198.84.155:443)
-- **EnvoyFilter**: Configures the WASM plugin in Istio sidecars
+- **egress-router1/egress-router2**: TCP bridge servers that forward traffic to httpbin.org on ports 80 (HTTP) and 443 (HTTPS)
+- **EnvoyFilter**: Configures the WASM plugin and HTTP-to-TCP override in Istio sidecars
 
 ## Configuration Files
 
-- [`k8s/envoyfilter.yaml`](k8s/envoyfilter.yaml): Istio EnvoyFilter configuration for WASM plugin
+- [`k8s/01-wasm-tcp-filter.yaml`](k8s/01-wasm-tcp-filter.yaml): Istio EnvoyFilter configuration for WASM plugin
+- [`k8s/02-http-to-tcp-override.yaml`](k8s/02-http-to-tcp-override.yaml): EnvoyFilter to force HTTP traffic through TCP proxy for WASM interception
 - [`k8s/client-deployment.yaml`](k8s/client-deployment.yaml): Client application deployment with Istio sidecar
 - [`k8s/egress-router1-deployment.yaml`](k8s/egress-router1-deployment.yaml): Egress router 1 deployment
 - [`k8s/egress-router2-deployment.yaml`](k8s/egress-router2-deployment.yaml): Egress router 2 deployment

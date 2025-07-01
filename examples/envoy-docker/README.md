@@ -22,10 +22,10 @@ In separate terminals, test the routing behavior:
 
 ```bash
 # Even IP (last octet 10) → routes to egress1
-docker run --rm -it --network envoy-docker_envoymesh --ip 172.21.0.10 curlimages/curl curl http://proxy:10000 -H "Host: www.ipconfig.io"
+docker run --rm -it --network envoy-docker_envoymesh --ip 172.21.0.10 curlimages/curl curl http://proxy:10000/ip -H "Host: httpbin.org"
 
 # Odd IP (last octet 11) → routes to egress2
-docker run --rm -it --network envoy-docker_envoymesh --ip 172.21.0.11 curlimages/curl curl http://proxy:10000 -H "Host: www.ipconfig.io"
+docker run --rm -it --network envoy-docker_envoymesh --ip 172.21.0.11 curlimages/curl curl http://proxy:10000/ip -H "Host: httpbin.org"
 ```
 
 ## Expected Output
@@ -45,7 +45,7 @@ proxy-1  | [2025-06-15T19:48:34.841Z] cluster=egress1 src=172.21.0.10:58762 dst=
 
 - **Envoy Proxy**: Listens on port 10000, applies the WASM filter
 - **WASM Filter**: Routes traffic based on source IP last octet
-- **egress1/egress2 Clusters**: Target external services (ipconfig.io)
+- **egress1/egress2 Clusters**: Target external services (httpbin.org)
 
 ## Configuration Files
 

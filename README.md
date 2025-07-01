@@ -65,9 +65,8 @@ _Note: The Istio example provides full transparent proxy capabilities, where cli
 The WASM filter acts as a **transparent proxy** by inserting itself into Envoy's `network.tcp_proxy` filter chain. When a TCP connection is established, the filter:
 
 1. **Intercepts the connection** in the `on_new_connection()` callback
-2. **Analyzes the source IP** address to make routing decisions
+2. **Looks at the tcp connection** to make a routing decision (based on the source IP address)
 3. **Uses `set_envoy_filter_state`** to dynamically override the cluster destination at runtime
-4. **Allows the connection to proceed** transparently to the new destination
 
 **Routing Logic:**
 
@@ -76,27 +75,19 @@ The WASM filter acts as a **transparent proxy** by inserting itself into Envoy's
 
 This creates a transparent proxy where clients connect to one destination but are seamlessly routed to different backend clusters based on their source IP, all without any client-side configuration or awareness.
 
+### HTTP-to-TCP Override for Unified Traffic Handling
+
+**Problem**: Istio/Envoy routes HTTP (port 80) through `http_connection_manager` and HTTPS (port 443) through `tcp_proxy` filter chains. Our WASM filter using StreamContext only sees TCP traffic, so HTTP bypasses it entirely.
+
+**Solution**: Use an EnvoyFilter to force HTTP traffic through the TCP proxy chain by removing the auto-generated HTTP listener and adding a custom TCP listener with the WASM filter.
+
+**Result**: Single WASM filter handles both HTTP and HTTPS traffic transparently using the same StreamContext routing logic. Trade-off: HTTP loses application-layer features but gains unified TCP-level proxying.
+
 ## Limitations & Future Improvements
-
-### Current Limitations
-
-1. **No destination information forwarding**: The egress routers currently don't receive information about the original destination (IP:Port) that the client intended to reach
-2. **HTTPS-only in Istio**: Only works for HTTPS traffic (port 443) in Istio environments, as HTTP traffic (port 80) uses the HTTP connection manager filter chain instead of the TCP proxy filter chain
-
-### Planned Enhancements
 
 1. **Pass destination to egress router**:
 
    - Implement PROXY protocol support to forward original destination IP:Port to egress routers
-   - This would allow egress routers to make intelligent routing decisions based on the intended destination
-   - Alternative: Use custom headers or metadata to pass destination information
-
-2. **Support HTTP traffic routing**:
-   - Extend the filter to work with HTTP connection manager filter chain
-   - Implement HTTP-level WASM filter in addition to TCP-level filtering
-   - This would enable transparent proxying for all traffic types, not just HTTPS
-
-These improvements would make the transparent proxy more complete and production-ready for diverse network environments.
 
 ## Development & CI/CD
 
@@ -124,21 +115,6 @@ cargo fmt --check
 cargo clippy -- -D warnings
 cargo audit            # Requires: cargo install cargo-audit
 ```
-
-### GitHub Actions
-
-This project uses a single, simple GitHub Actions workflow for CI:
-
-#### **CI Pipeline** (`/.github/workflows/ci.yml`)
-
-Runs on every push and pull request to `main`:
-
-- ✅ **Code formatting** - `cargo fmt --check`
-- ✅ **Linting** - `cargo clippy -- -D warnings`
-- ✅ **Unit tests** - `cargo test --verbose` (8 comprehensive test cases)
-- ✅ **WASM build** - `cargo build --target wasm32-unknown-unknown --release`
-- ✅ **README link validation** - Ensures all README files are discoverable from root
-- ✅ **File size check** - Reports final WASM module size
 
 **Simple, fast, and reliable!** 🚀
 
