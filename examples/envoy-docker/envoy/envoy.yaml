@@ -50,7 +50,7 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: www.ipconfig.io # This would be the egress router service
+                      address: httpbin.org # This would be the egress router service
                       port_value: 80
     - name: egress-router2 # Cluster for egress-router2
       connect_timeout: 30s # Connection timeout
@@ -63,7 +63,7 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: www.ipconfig.io # This would be the egress router service.
+                      address: httpbin.org # This would be the egress router service.
                       port_value: 80
 
 admin:

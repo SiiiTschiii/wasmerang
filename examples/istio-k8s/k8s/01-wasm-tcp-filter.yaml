@@ -3,11 +3,15 @@ kind: EnvoyFilter
 metadata:
   name: wasm-tcp-filter
   namespace: default
+  labels:
+    app: wasmerang
+    component: tcp-filter
 spec:
   workloadSelector:
     labels:
-      app: go-client # Or remove this to apply mesh-wide, or set to istio: ingressgateway for gateway
+      app: go-client # Targets the go-client sidecar
   configPatches:
+    # Apply WASM filter to all TCP proxy filter chains (HTTPS and other non-HTTP traffic)
     - applyTo: NETWORK_FILTER
       match:
         context: SIDECAR_OUTBOUND
